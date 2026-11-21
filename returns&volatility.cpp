@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -5,10 +6,14 @@
 #include <limits>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <algorithm>
+#include <exception>
 
 using namespace std;
 
 // Function declarations
+vector<double> loadPrices(const string &filename);
 vector<double> calculateReturns(const vector<double> &prices);
 vector<double> calculateLogReturns(const vector<double> &prices);
 double calculateMean(const vector<double> &returns);
@@ -20,12 +25,19 @@ double returnsCAGR(const vector<double> &prices, int periodsPerYear);
 
 int main()
 {
-    // Historical asset prices
-    vector<double> prices = {
-        100, 103, 101, 105, 108,
-        110, 107, 111, 115, 120,
-        118, 122, 125, 130, 128,
-        132, 135, 138, 140, 145};
+    string file_name;
+
+    cout << "Enter CSV file name or path: ";
+    getline(cin, file_name);
+
+    // Load historical asset prices
+    vector<double> prices = loadPrices(file_name);
+
+    if (prices.size() < 3)
+    {
+        cout << "Error: Not enough valid price observations." << endl;
+        return 1;
+    }
 
     cout << fixed << setprecision(4);
 
@@ -71,6 +83,9 @@ int main()
     cout << "Price Observations: " << prices.size() << endl;
     cout << "Return Observations: " << returns.size() << endl;
 
+    cout << "First Price: $" << prices.front() << endl;
+    cout << "Last Price: $" << prices.back() << endl;
+
     cout << "Mean Simple Return: "
          << mean * 100 << "%" << endl;
 
@@ -86,18 +101,106 @@ int main()
          << volatility * 100 << "%" << endl;
 
     double annualized_volatility = annualizedVolatility(volatility, 252);
+
     cout << "Annualized Volatility: "
          << annualized_volatility * 100 << "%" << endl;
 
-    cout
-        << "Annualized Returns: "
-        << annualizedReturns(returns, 252) * 100 << "%" << endl;
+    cout << "Annualized Returns: "
+         << annualizedReturns(returns, 252) * 100 << "%" << endl;
 
-    cout
-        << "CAGR: "
-        << returnsCAGR(prices, 252) * 100 << "%" << endl;
+    cout << "CAGR: "
+         << returnsCAGR(prices, 252) * 100 << "%" << endl;
 
     return 0;
+}
+
+// Load historical prices from Nasdaq CSV
+vector<double> loadPrices(const string &filename)
+{
+    vector<double> prices;
+
+    ifstream file(filename);
+
+    if (!file.is_open())
+    {
+        cout << "Error opening the file: " << filename << endl;
+        return prices;
+    }
+
+    string line;
+    size_t row = 1;
+
+    // Skip the CSV header
+    if (!getline(file, line))
+    {
+        cout << "Error: CSV file is empty." << endl;
+        return {};
+    }
+
+    // Read historical data
+    while (getline(file, line))
+    {
+        ++row;
+
+        stringstream ss(line);
+
+        string date;
+        string close;
+
+        // Extract first column: Date
+        if (!getline(ss, date, ','))
+        {
+            cout << "Invalid date at row " << row << endl;
+            return {};
+        }
+
+        // Extract second column: Close/Last
+        if (!getline(ss, close, ','))
+        {
+            cout << "Missing closing price at row " << row << endl;
+            return {};
+        }
+
+        // Remove the dollar sign
+        if (!close.empty() && close[0] == '$')
+        {
+            close.erase(0, 1);
+        }
+
+        // Convert string to double
+        try
+        {
+            size_t parsedCharacters = 0;
+            double price = stod(close, &parsedCharacters);
+
+            if (parsedCharacters != close.size() ||
+                !isfinite(price) ||
+                price <= 0)
+            {
+                cout << "Invalid price at row " << row << endl;
+                return {};
+            }
+
+            prices.push_back(price);
+        }
+        catch (const exception &)
+        {
+            cout << "Invalid price at row " << row << endl;
+            return {};
+        }
+    }
+
+    if (file.bad())
+    {
+        cout << "Error while reading CSV file." << endl;
+        return {};
+    }
+
+    // Nasdaq data is newest to oldest
+    // Reverse to oldest to newest
+    reverse(prices.begin(), prices.end());
+
+    return prices;
 }
 
 // Calculate simple returns
@@ -174,11 +277,13 @@ double calculateVolatility(const vector<double> &returns, double mean)
     return sqrt(variance);
 }
 
+// Annualize volatility
 double annualizedVolatility(double volatility, int periodsPerYear)
 {
     return volatility * sqrt(periodsPerYear);
 }
 
+// Annualize arithmetic mean return
 double annualizedReturns(const vector<double> &returns, int periodsPerYear)
 {
     double mean = calculateMean(returns);
@@ -186,6 +291,7 @@ double annualizedReturns(const vector<double> &returns, int periodsPerYear)
     return mean * periodsPerYear;
 }
 
+// Calculate compound annual growth rate
 double returnsCAGR(const vector<double> &prices, int periodsPerYear)
 {
     if (prices.size() < 2 || periodsPerYear <= 0)
