@@ -1,142 +1,251 @@
 # C++ Quantitative Returns & Volatility Dashboard
 
-A lightweight quantitative finance analytics tool built from scratch in **C++**.
-
-This project calculates statistical measures of financial returns and volatility, with a focus on understanding the mathematics behind quantitative finance and implementing the calculations directly in C++.
+A lightweight quantitative finance analytics tool built from scratch in **C++17**, designed to analyze historical asset prices, calculate financial returns, and measure volatility without relying on external financial libraries.
 
 **Project 02/30 — Quantitative Finance Programming Series**
 
 ## Overview
 
-The dashboard processes historical asset prices and calculates descriptive statistics and annualized performance metrics.
+Financial returns are not as straightforward as they initially appear.
 
-Rather than relying on external financial libraries, the core calculations are implemented using the C++ Standard Library.
+An asset can have a positive arithmetic average return while experiencing much lower compounded growth due to volatility.
+
+This project explores the mathematical foundations of quantitative risk analysis by implementing financial statistics directly in C++.
+
+Rather than relying on ready-made analytical libraries, the objective is to understand how each calculation works, from raw historical prices to annualized risk and return metrics.
 
 ## Features
 
 ### Implemented
 
+- Historical price loading from CSV files
+- Input validation and error handling
+- Chronological ordering of historical observations
 - Simple returns
 - Logarithmic returns
 - Arithmetic mean returns
 - Sample variance
-- Standard deviation (volatility)
-- Annualized arithmetic mean returns
+- Standard deviation
+- Annualized arithmetic mean return
 - Annualized volatility
 - Compound Annual Growth Rate (CAGR)
 - Terminal-based statistical output
 
-### In Development
+### Planned Improvements
 
-- Historical market data loading from CSV files
-- Input validation and error handling
-- Cross-validation of results against Python (NumPy/Pandas)
+- Independent validation against Python (NumPy/Pandas)
+- Additional CSV format support
+- Sharpe and Sortino ratios
+- Maximum drawdown analysis
+- Rolling volatility
+- Exportable analysis results
+- Automated unit tests
 
 ## Mathematical Framework
 
-**Simple Returns**
+### 1. Simple Returns
 
-R(t) = (P(t) - P(t-1)) / P(t-1)
+The percentage change in an asset's price between two consecutive observations.
 
-**Logarithmic Returns**
+\[
+R_t = \frac{P_t-P_{t-1}}{P_{t-1}}
+\]
 
-r(t) = ln(P(t) / P(t-1))
+### 2. Logarithmic Returns
 
-**Sample Variance**
+Logarithmic returns are additive across consecutive time periods.
 
-s² = Σ(R(t) - μ)² / (N - 1)
+\[
+r_t = \ln\left(\frac{P_t}{P_{t-1}}\right)
+\]
 
-**Volatility**
+### 3. Arithmetic Mean Return
 
-σ = √s²
+\[
+\bar R = \frac{1}{N}\sum_{t=1}^{N}R_t
+\]
 
-**Annualized Volatility**
+### 4. Sample Variance
 
-σ(annual) = σ(daily) × √252
+\[
+s^2 = \frac{1}{N-1}\sum_{t=1}^{N}(R_t-\bar R)^2
+\]
 
-**Annualized Arithmetic Mean Return**
+### 5. Volatility
 
-μ(annual) = μ(daily) × 252
+\[
+\sigma = \sqrt{s^2}
+\]
 
-**Compound Annual Growth Rate**
+### 6. Annualized Volatility
 
-CAGR = (P(final) / P(initial))^(252/N) - 1
+\[
+\sigma_{\text{annual}} = \sigma_{\text{daily}}\sqrt{252}
+\]
 
-Where N is the number of return periods. The annualization formulas assume daily observations and approximately 252 trading periods per year. Square-root-of-time volatility scaling also assumes negligible serial correlation.
+This conventional scaling assumes sufficiently weak serial dependence in returns.
+
+### 7. Annualized Arithmetic Return
+
+\[
+\mu_{\text{annual}} = 252\bar R
+\]
+
+This is an arithmetic annualization, not a compounded return forecast.
+
+### 8. Compound Annual Growth Rate
+
+\[
+CAGR = \left(\frac{P_{\text{final}}}{P_{\text{initial}}}\right)^{252/N}-1
+\]
+
+Where \(N\) is the number of return periods.
+
+## Volatility Drag and Compounding
+
+Consider an investment starting at $100.
+
+| Period | Return | Portfolio Value |
+|---|---:|---:|
+| Initial | — | $100 |
+| 1 | +50% | $150 |
+| 2 | −50% | $75 |
+
+The arithmetic average return is 0%, but the total compounded return is −25%.
+
+This illustrates why arithmetic returns and geometric growth are not interchangeable.
+
+Under appropriate assumptions, the relationship between arithmetic and geometric growth can be approximated by:
+
+\[
+g \approx \mu-\frac{\sigma^2}{2}
+\]
+
+Higher volatility can reduce compounded growth relative to the arithmetic average.
+
+The dashboard provides the basic statistics needed to investigate this relationship using historical data.
+
+## Historical Data
+
+The application loads historical asset prices from a user-specified CSV file.
+
+The current parser expects a Nasdaq-style CSV containing:
+
+- First column: Date
+- Second column: Close/Last
+
+For example:
+
+```csv
+Date,Close/Last,Volume,Open,High,Low
+11/21/2026,$150.00,1000000,$148.00,$151.00,$147.00
+11/20/2026,$148.00,900000,$146.00,$149.00,$145.00
+11/19/2026,$146.00,850000,$144.00,$147.00,$143.00
+```
+
+The application assumes observations are ordered from newest to oldest and reverses them before calculating returns.
+
+It also validates closing prices, rejecting invalid, non-finite, or non-positive values.
+
+**Important:** The current implementation does not verify the actual dates or calculate elapsed calendar time. It assumes approximately 252 observations per trading year.
+
+For dividend-paying assets, raw closing prices do not necessarily represent total investment returns. Adjusted or total-return data should be used when appropriate.
 
 ## Technologies
 
-- C++
+- C++17
 - C++ Standard Library
 - Git / GitHub
+- CSV historical market data
 
-No external dependencies are required for the current version.
+No external C++ dependencies are required.
 
-## Getting Started
+## Build and Run
 
 ### Requirements
 
-- A C++ compiler supporting C++11 or later
-- Git (optional)
+A C++ compiler supporting C++17 or later.
 
 ### Compile
 
-Using G++:
-
 ```bash
-g++ -std=c++17 -O2 -Wall -Wextra main.cpp -o dashboard
+g++ -std=c++17 -O2 -Wall -Wextra "returns&volatility.cpp" -o dashboard
 ```
 
-### Run
-
-On Windows:
+### Run on Windows (PowerShell)
 
 ```powershell
 .\dashboard.exe
 ```
 
-On Linux/macOS:
+### Run on Linux/macOS
 
 ```bash
 ./dashboard
 ```
 
-The current version uses a sample vector of historical prices defined in `main.cpp`.
+When prompted, enter the path to a compatible historical CSV file.
+
+The program will calculate and display the financial statistics in the terminal.
 
 ## Project Structure
 
 ```text
 cpp-quant-risk-dashboard/
-├── main.cpp
+├── returns&volatility.cpp
+├── HistoricalData_1795299932817.csv
 ├── .gitignore
 └── README.md
 ```
 
-## Limitations
+## Current Limitations
 
-- The current implementation uses hardcoded sample prices rather than downloaded market data.
-- Annualized statistics are extrapolations and should not be interpreted as forecasts.
-- The current dashboard does not model transaction costs, dividends, or corporate actions.
-- The application is intended for educational and research purposes, not investment advice.
+- Supports a specific Nasdaq-style CSV layout.
+- Assumes reverse-chronological observations.
+- Does not validate date ordering or missing trading sessions.
+- Does not automatically adjust prices for dividends, splits, or corporate actions.
+- Uses 252 periods per year for annualization.
+- Assumes sufficiently weak serial correlation when annualizing volatility.
+- Does not currently calculate drawdowns, portfolio correlations, or multi-asset risk.
+- Has not yet been independently cross-validated against a separate statistical implementation.
 
-## Roadmap
+The tool is intended for education and quantitative research, not investment recommendations.
 
-- [x] Implement returns and volatility calculations
-- [x] Implement annualization and CAGR
-- [ ] Load historical prices from CSV
-- [ ] Validate calculations against Python
-- [ ] Improve error handling and documentation
+## Project Roadmap
 
-## Purpose
+- [x] Implement simple and logarithmic returns
+- [x] Implement mean, variance, and standard deviation
+- [x] Implement annualized returns and volatility
+- [x] Implement CAGR
+- [x] Load historical prices from CSV
+- [x] Implement basic input validation
+- [ ] Cross-validate against NumPy/Pandas
+- [ ] Implement Sharpe and Sortino ratios
+- [ ] Add maximum drawdown calculations
+- [ ] Implement rolling risk metrics
+- [ ] Add automated testing
+- [ ] Support additional historical data formats
 
-This is the second project in a series of 30 progressively more advanced quantitative finance programming projects.
+## Why I Built This
 
-The objective is to develop practical skills in C++, numerical programming, financial mathematics, and reproducible quantitative research.
+I'm currently developing my quantitative finance and C++ programming skills through a series of 30 progressively more advanced projects.
 
-Future projects will explore more advanced topics in statistical modeling, portfolio risk, stochastic processes, and quantitative trading.
+The purpose isn't simply to reproduce calculations that existing libraries already perform.
+
+It's to understand the mathematics, numerical assumptions, and implementation decisions behind the tools used in quantitative research.
+
+This is the second project in that series.
+
+Future projects will explore portfolio optimization, stochastic processes, statistical modeling, and systematic trading.
 
 ## Author
 
-Santiago Pascual
+**Santiago Pascual**
 
-Aspiring Quantitative Researcher | Quantitative Finance & C++
+Aspiring Quantitative Researcher | Quantitative Finance | C++ | Python
+
+GitHub: https://github.com/santiago-pascual
+
+## Disclaimer
+
+This software is provided for educational and research purposes only. Historical statistics do not guarantee future performance.
