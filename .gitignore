@@ -7,3 +7,6 @@ build/
 
 results.csv
 __pycache__/
+
+# Local third-party market data
+HistoricalData_*.csv

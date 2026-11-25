@@ -37,7 +37,8 @@ def validate(exe, source, periods, rf, confidence, window, figures=None):
         for k,v in ref.items(): print(f'| {k} | {actual[k]:.10g} | {v:.10g} |')
 
 if __name__=='__main__':
-    ap=argparse.ArgumentParser(); ap.add_argument('exe'); ap.add_argument('--figures',action='store_true'); args=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument('exe'); ap.add_argument('--figures',action='store_true'); ap.add_argument('--historical',type=Path,help='Optional user-supplied historical CSV'); args=ap.parse_args()
     root=Path(__file__).resolve().parents[1]
     validate(args.exe,root/'data/synthetic_prices.csv',365,.03,.95,20,root/'figures' if args.figures else None)
-    validate(args.exe,root/'HistoricalData_1795299932817.csv',252,.02,.90,5)
+    if args.historical is not None:
+        validate(args.exe,args.historical,252,.02,.90,5)

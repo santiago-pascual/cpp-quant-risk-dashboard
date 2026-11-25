@@ -44,7 +44,7 @@ python -m pip install numpy pandas matplotlib
 python scripts/validate.py build/dashboard --figures
 ```
 
-Use the appropriate executable path on Windows. The script independently computes all 15 scalar metrics and five exported series, comparing with relative tolerance 1e-10 and absolute tolerance 1e-12. Verified locally using GNU C++ 14.2.0, Release build: CTest 1/1 passed; synthetic dataset (100 prices) and original Nasdaq-style dataset (23 prices) both passed. Remote CI status is not yet verified.
+Use the appropriate executable path on Windows. The script independently computes all 15 scalar metrics and five exported series, comparing with relative tolerance 1e-10 and absolute tolerance 1e-12. Verified locally using GNU C++ 14.2.0, Release build: CTest 1/1 passed; synthetic dataset (100 prices) and original Nasdaq-style dataset (23 prices) both passed. The automated build, CTest suite and numerical validation have passed on GitHub Actions.
 
 Synthetic example: 100 daily observations, 365 periods/year, 3% annual risk-free rate, 95% confidence, 20-return window. Rates below are decimal fractions.
 
@@ -87,8 +87,22 @@ figures/           Reproducible example charts
 .github/workflows/ Automated build and validation
 ```
 
-The original historical CSV is retained for backward compatibility. Its redistribution rights have not been independently verified.
+The original historical Nasdaq-style dataset is not distributed because its redistribution rights have not been established. The deterministic synthetic dataset is included for reproducible validation. Users may optionally supply their own appropriately licensed historical data.
 
 ## Limitations
 
 Single asset, closing prices only; no portfolio covariance, transaction costs, dividends, splits, missing-session detection or intraday risk. CSV support excludes multiline quoted records. Extra data columns are not semantically validated. Rolling volatility uses a direct window calculation. Historical tail statistics are sensitive to sample size. Annualization assumes comparable observation intervals; calendar CAGR is distinct. Educational/research software, not investment advice.
+
+
+## Optional historical-data validation
+
+To validate against a separately obtained and appropriately licensed historical dataset:
+
+    python scripts/validate.py build/dashboard --historical /path/to/prices.csv
+
+The synthetic dataset remains the mandatory validation benchmark used by CI.
+
+## License
+
+The original software is released under the [MIT License](LICENSE).
+This license does not grant redistribution rights to third-party market data.
