@@ -1,251 +1,94 @@
-# C++ Quantitative Returns & Volatility Dashboard
+# C++ Quantitative Risk Analytics
 
-A lightweight quantitative finance analytics tool built from scratch in **C++17**, designed to analyze historical asset prices, calculate financial returns, and measure volatility without relying on external financial libraries.
+[![C++ CI](https://github.com/santiago-pascual/cpp-quant-risk-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/santiago-pascual/cpp-quant-risk-dashboard/actions/workflows/ci.yml)
 
-**Project 02/30 — Quantitative Finance Programming Series**
-
-## Overview
-
-Financial returns are not as straightforward as they initially appear.
-
-An asset can have a positive arithmetic average return while experiencing much lower compounded growth due to volatility.
-
-This project explores the mathematical foundations of quantitative risk analysis by implementing financial statistics directly in C++.
-
-Rather than relying on ready-made analytical libraries, the objective is to understand how each calculation works, from raw historical prices to annualized risk and return metrics.
+Dependency-free C++17 command-line engine for single-asset historical return and risk analysis, with independent NumPy/pandas numerical verification. Project 02/30 — Quantitative Finance Programming Series.
 
 ## Features
 
-### Implemented
+- Chronological CSV ingestion with Gregorian date validation, positive finite prices, duplicate rejection and field-count checks.
+- Simple/log returns, arithmetic/geometric growth, sample variance, volatility, calendar CAGR and observation-based annualization.
+- Sharpe, Sortino, maximum drawdown, rolling volatility, historical VaR and expected shortfall.
+- Configurable CLI, interactive file prompt, per-observation CSV export and explicit N/A values.
+- CMake/CTest, compiler warnings and automated Python reference validation.
 
-- Historical price loading from CSV files
-- Input validation and error handling
-- Chronological ordering of historical observations
-- Simple returns
-- Logarithmic returns
-- Arithmetic mean returns
-- Sample variance
-- Standard deviation
-- Annualized arithmetic mean return
-- Annualized volatility
-- Compound Annual Growth Rate (CAGR)
-- Terminal-based statistical output
+## Build and run
 
-### Planned Improvements
+Requires a C++17 compiler and CMake 3.16+. Python is optional for running the independent validation.
 
-- Independent validation against Python (NumPy/Pandas)
-- Additional CSV format support
-- Sharpe and Sortino ratios
-- Maximum drawdown analysis
-- Rolling volatility
-- Exportable analysis results
-- Automated unit tests
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+./build/dashboard data/synthetic_prices.csv --periods 365 --rf 0.03 --confidence 0.95 --window 20 --export results.csv
+```
 
-## Mathematical Framework
+On Windows with Visual Studio generators use `build/Release/dashboard.exe`; with single-configuration generators use `build/dashboard.exe`. Run without arguments for an interactive file prompt. `--help` lists options. Defaults: 252 periods/year, zero annual risk-free rate, 0.95 confidence, 20-return rolling window. Rates are decimal fractions. Export contains dates, prices, simple/log returns, drawdown and rolling annualized volatility; scalar metrics are printed as key=value.
 
-### 1. Simple Returns
-
-The percentage change in an asset's price between two consecutive observations.
-
-\[
-R_t = \frac{P_t-P_{t-1}}{P_{t-1}}
-\]
-
-### 2. Logarithmic Returns
-
-Logarithmic returns are additive across consecutive time periods.
-
-\[
-r_t = \ln\left(\frac{P_t}{P_{t-1}}\right)
-\]
-
-### 3. Arithmetic Mean Return
-
-\[
-\bar R = \frac{1}{N}\sum_{t=1}^{N}R_t
-\]
-
-### 4. Sample Variance
-
-\[
-s^2 = \frac{1}{N-1}\sum_{t=1}^{N}(R_t-\bar R)^2
-\]
-
-### 5. Volatility
-
-\[
-\sigma = \sqrt{s^2}
-\]
-
-### 6. Annualized Volatility
-
-\[
-\sigma_{\text{annual}} = \sigma_{\text{daily}}\sqrt{252}
-\]
-
-This conventional scaling assumes sufficiently weak serial dependence in returns.
-
-### 7. Annualized Arithmetic Return
-
-\[
-\mu_{\text{annual}} = 252\bar R
-\]
-
-This is an arithmetic annualization, not a compounded return forecast.
-
-### 8. Compound Annual Growth Rate
-
-\[
-CAGR = \left(\frac{P_{\text{final}}}{P_{\text{initial}}}\right)^{252/N}-1
-\]
-
-Where \(N\) is the number of return periods.
-
-## Volatility Drag and Compounding
-
-Consider an investment starting at $100.
-
-| Period | Return | Portfolio Value |
-|---|---:|---:|
-| Initial | — | $100 |
-| 1 | +50% | $150 |
-| 2 | −50% | $75 |
-
-The arithmetic average return is 0%, but the total compounded return is −25%.
-
-This illustrates why arithmetic returns and geometric growth are not interchangeable.
-
-Under appropriate assumptions, the relationship between arithmetic and geometric growth can be approximated by:
-
-\[
-g \approx \mu-\frac{\sigma^2}{2}
-\]
-
-Higher volatility can reduce compounded growth relative to the arithmetic average.
-
-The dashboard provides the basic statistics needed to investigate this relationship using historical data.
-
-## Historical Data
-
-The application loads historical asset prices from a user-specified CSV file.
-
-The current parser expects a Nasdaq-style CSV containing:
-
-- First column: Date
-- Second column: Close/Last
-
-For example:
+Input headers: `Date` and `Close` or `Close/Last`, in any column order. Extra columns are ignored after field-count validation. Dates use YYYY-MM-DD or US M/D/YYYY; optional dollar prefix, quoted single-line fields and UTF-8 BOM are supported. Ascending, descending and unsorted observations are sorted. Blank/malformed rows are rejected. Example:
 
 ```csv
-Date,Close/Last,Volume,Open,High,Low
-11/21/2026,$150.00,1000000,$148.00,$151.00,$147.00
-11/20/2026,$148.00,900000,$146.00,$149.00,$145.00
-11/19/2026,$146.00,850000,$144.00,$147.00,$143.00
+Date,Close
+2024-01-01,100
+2024-01-02,101
 ```
 
-The application assumes observations are ordered from newest to oldest and reverses them before calculating returns.
+## Methodology
 
-It also validates closing prices, rejecting invalid, non-finite, or non-positive values.
+See [complete formulas, conventions and undefined cases](docs/methodology.md). Returns use consecutive observations; sample variance uses N-1. Calendar CAGR uses elapsed days / 365.2425, independently of observation-based geometric annualization. Risk ratios use an effective annual risk-free rate converted to a periodic rate. Historical ES uses fractional empirical tail weighting.
 
-**Important:** The current implementation does not verify the actual dates or calculate elapsed calendar time. It assumes approximately 252 observations per trading year.
+## Independent numerical validation
 
-For dividend-paying assets, raw closing prices do not necessarily represent total investment returns. Adjusted or total-return data should be used when appropriate.
-
-## Technologies
-
-- C++17
-- C++ Standard Library
-- Git / GitHub
-- CSV historical market data
-
-No external C++ dependencies are required.
-
-## Build and Run
-
-### Requirements
-
-A C++ compiler supporting C++17 or later.
-
-### Compile
-
-```bash
-g++ -std=c++17 -O2 -Wall -Wextra "returns&volatility.cpp" -o dashboard
+```sh
+python -m pip install numpy pandas matplotlib
+python scripts/validate.py build/dashboard --figures
 ```
 
-### Run on Windows (PowerShell)
+Use the appropriate executable path on Windows. The script independently computes all 15 scalar metrics and five exported series, comparing with relative tolerance 1e-10 and absolute tolerance 1e-12. Verified locally using GNU C++ 14.2.0, Release build: CTest 1/1 passed; synthetic dataset (100 prices) and original Nasdaq-style dataset (23 prices) both passed. Remote CI status is not yet verified.
 
-```powershell
-.\dashboard.exe
-```
+Synthetic example: 100 daily observations, 365 periods/year, 3% annual risk-free rate, 95% confidence, 20-return window. Rates below are decimal fractions.
 
-### Run on Linux/macOS
+| Metric | C++ | Python |
+|---|---:|---:|
+| mean_simple | 0.0006523348211 | 0.0006523348211 |
+| mean_log | 0.0004779499225 | 0.0004779499225 |
+| geometric_return | 0.0004780641587 | 0.0004780641587 |
+| sample_variance | 0.0003523428488 | 0.0003523428488 |
+| volatility | 0.01877079777 | 0.01877079777 |
+| annual_volatility | 0.3586155878 | 0.3586155878 |
+| annual_arithmetic | 0.2381022097 | 0.2381022097 |
+| annual_geometric | 0.1905932612 | 0.1905932612 |
+| calendar_cagr | 0.1907312623 | 0.1907312623 |
+| sharpe | 0.5815202061 | 0.5815202061 |
+| sortino | 0.8526273925 | 0.8526273925 |
+| downside_deviation | 0.01280230765 | 0.01280230765 |
+| max_drawdown | 0.0743208242 | 0.0743208242 |
+| var | 0.0278181843 | 0.0278181843 |
+| es | 0.03035710126 | 0.03035710126 |
 
-```bash
-./dashboard
-```
+## Visual evidence
 
-When prompted, enter the path to a compatible historical CSV file.
+Figures generated by the validation script from the deterministic synthetic price series, independently checked against C++ exports. These are not real-market performance claims.
 
-The program will calculate and display the financial statistics in the terminal.
+![Simple returns](figures/returns.png)
+![Rolling volatility](figures/rolling_volatility.png)
+![Drawdown](figures/drawdown.png)
 
-## Project Structure
+## Repository structure
 
 ```text
-cpp-quant-risk-dashboard/
-├── returns&volatility.cpp
-├── HistoricalData_1795299932817.csv
-├── .gitignore
-└── README.md
+include/risk/      Public analytics and ingestion interfaces
+src/               CLI, analytics and CSV implementations
+tests/             Mathematical and ingestion checks
+data/              Deterministic synthetic dataset
+scripts/           Independent validation and figure generation
+docs/              Statistical methodology
+figures/           Reproducible example charts
+.github/workflows/ Automated build and validation
 ```
 
-## Current Limitations
+The original historical CSV is retained for backward compatibility. Its redistribution rights have not been independently verified.
 
-- Supports a specific Nasdaq-style CSV layout.
-- Assumes reverse-chronological observations.
-- Does not validate date ordering or missing trading sessions.
-- Does not automatically adjust prices for dividends, splits, or corporate actions.
-- Uses 252 periods per year for annualization.
-- Assumes sufficiently weak serial correlation when annualizing volatility.
-- Does not currently calculate drawdowns, portfolio correlations, or multi-asset risk.
-- Has not yet been independently cross-validated against a separate statistical implementation.
+## Limitations
 
-The tool is intended for education and quantitative research, not investment recommendations.
-
-## Project Roadmap
-
-- [x] Implement simple and logarithmic returns
-- [x] Implement mean, variance, and standard deviation
-- [x] Implement annualized returns and volatility
-- [x] Implement CAGR
-- [x] Load historical prices from CSV
-- [x] Implement basic input validation
-- [ ] Cross-validate against NumPy/Pandas
-- [ ] Implement Sharpe and Sortino ratios
-- [ ] Add maximum drawdown calculations
-- [ ] Implement rolling risk metrics
-- [ ] Add automated testing
-- [ ] Support additional historical data formats
-
-## Why I Built This
-
-I'm currently developing my quantitative finance and C++ programming skills through a series of 30 progressively more advanced projects.
-
-The purpose isn't simply to reproduce calculations that existing libraries already perform.
-
-It's to understand the mathematics, numerical assumptions, and implementation decisions behind the tools used in quantitative research.
-
-This is the second project in that series.
-
-Future projects will explore portfolio optimization, stochastic processes, statistical modeling, and systematic trading.
-
-## Author
-
-**Santiago Pascual**
-
-Aspiring Quantitative Researcher | Quantitative Finance | C++ | Python
-
-GitHub: https://github.com/santiago-pascual
-
-## Disclaimer
-
-This software is provided for educational and research purposes only. Historical statistics do not guarantee future performance.
+Single asset, closing prices only; no portfolio covariance, transaction costs, dividends, splits, missing-session detection or intraday risk. CSV support excludes multiline quoted records. Extra data columns are not semantically validated. Rolling volatility uses a direct window calculation. Historical tail statistics are sensitive to sample size. Annualization assumes comparable observation intervals; calendar CAGR is distinct. Educational/research software, not investment advice.

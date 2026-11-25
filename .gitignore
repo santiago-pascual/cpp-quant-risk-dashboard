@@ -4,3 +4,6 @@
 *.out
 .vscode/
 build/
+
+results.csv
+__pycache__/
